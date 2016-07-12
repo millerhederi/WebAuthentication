@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Web;
+﻿using System.Reflection;
 using System.Web.Http;
-using System.Web.Routing;
+using System.Web.Http.Dependencies;
+using System.Web.Http.Filters;
 using Autofac;
 using Autofac.Integration.WebApi;
+using WebAuthentication.Filters;
 using WebAuthentication.Services;
 
 namespace WebAuthentication
@@ -19,17 +17,21 @@ namespace WebAuthentication
 
             var builder = new ContainerBuilder();
 
-            // Get your HttpConfiguration.
             var config = GlobalConfiguration.Configuration;
 
-            // Register your Web API controllers.
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
             builder.RegisterType<PasswordHasher>().As<IPasswordHasher>().SingleInstance();
 
-            // Set the dependency resolver to be Autofac.
             var container = builder.Build();
             config.DependencyResolver = new AutofacWebApiDependencyResolver(container);
+
+            ConfigureGlobalFilters(config.Filters);
+        }
+
+        private static void ConfigureGlobalFilters(HttpFilterCollection filters)
+        {
+            filters.Add(new AuthenticationFilterAttribute());
         }
     }
 }

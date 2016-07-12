@@ -21,6 +21,7 @@ namespace WebAuthentication.Controllers
 
         [HttpPost]
         [Route("Register")]
+        [AllowAnonymous]
         public IHttpActionResult Register(RegisterModel model)
         {
             if (model == null)
@@ -47,6 +48,7 @@ namespace WebAuthentication.Controllers
 
         [HttpGet]
         [Route("Token")]
+        [AllowAnonymous]
         public IHttpActionResult Token([FromUri]RegisterModel model)
         {
             User user;
