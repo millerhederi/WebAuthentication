@@ -1,28 +1,34 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Http;
 using WebAuthentication.DataAccess;
 using WebAuthentication.Models;
-using WebAuthentication.Services;
+using WebAuthentication.Modules;
 
 namespace WebAuthentication.Controllers
 {
     [RoutePrefix("api/Account")]
     public class AccountController : ApiController
     {
-        private static readonly ConcurrentDictionary<string, User> Users = new ConcurrentDictionary<string, User>();
-
         private readonly Func<IPasswordHasher> _passwordHasherFactory;
+        private readonly Func<IUserRepository> _userRepositoryFactory;
+        private readonly Func<IUserSessionRepository> _userSessionRepositoryFactory;
 
-        public AccountController(Func<IPasswordHasher> passwordHasherFactory)
+        public AccountController(
+            Func<IPasswordHasher> passwordHasherFactory,
+            Func<IUserRepository> userRepositoryFactory,
+            Func<IUserSessionRepository> userSessionRepositoryFactory)
         {
             _passwordHasherFactory = passwordHasherFactory;
+            _userRepositoryFactory = userRepositoryFactory;
+            _userSessionRepositoryFactory = userSessionRepositoryFactory;
         }
 
         [HttpPost]
         [Route("Register")]
         [AllowAnonymous]
-        public IHttpActionResult Register(RegisterModel model)
+        public async Task<IHttpActionResult> RegisterAsync(RegisterModel model, CancellationToken cancellationToken)
         {
             if (model == null)
             {
@@ -38,7 +44,13 @@ namespace WebAuthentication.Controllers
                 Password = passwordHasher.HashPassword(model.Password),
             };
 
-            if (!Users.TryAdd(model.UserName, user))
+            var userRepository = _userRepositoryFactory();
+
+            try
+            {
+                await userRepository.Insert(user, cancellationToken);
+            }
+            catch (InvalidOperationException)
             {
                 return BadRequest("User already exists.");
             }
@@ -49,11 +61,13 @@ namespace WebAuthentication.Controllers
         [HttpGet]
         [Route("Token")]
         [AllowAnonymous]
-        public IHttpActionResult Token([FromUri]RegisterModel model)
+        public async Task<IHttpActionResult> TokenAsync([FromUri]RegisterModel model, CancellationToken cancellationToken)
         {
-            User user;
+            var userRepository = _userRepositoryFactory();
 
-            if (!Users.TryGetValue(model.UserName, out user))
+            var user = await userRepository.GetByUserNameAsync(model.UserName, cancellationToken);
+
+            if (user == null)
             {
                 return BadRequest("Invalid username or password.");
             }
@@ -65,7 +79,23 @@ namespace WebAuthentication.Controllers
                 return BadRequest("Invalid username or password.");
             }
 
-            return Ok(Guid.NewGuid());
+            var userSessionRepository = _userSessionRepositoryFactory();
+
+            var userSession = await userSessionRepository.GetByUserIdAsync(user.Id, cancellationToken);
+
+            if (userSession == null)
+            {
+                userSession = new UserSession
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Token = Guid.NewGuid().ToString(),
+                };
+
+                await userSessionRepository.InsertAsync(userSession, cancellationToken);
+            }
+
+            return Ok(userSession.Token);
         }
     }
 }

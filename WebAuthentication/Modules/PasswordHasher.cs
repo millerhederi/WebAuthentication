@@ -1,4 +1,4 @@
-﻿namespace WebAuthentication.Services
+﻿namespace WebAuthentication.Modules
 {
     public interface IPasswordHasher
     {

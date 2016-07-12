@@ -1,11 +1,10 @@
 ﻿using System.Reflection;
 using System.Web.Http;
-using System.Web.Http.Dependencies;
 using System.Web.Http.Filters;
 using Autofac;
 using Autofac.Integration.WebApi;
 using WebAuthentication.Filters;
-using WebAuthentication.Services;
+using WebAuthentication.Modules;
 using AuthorizationFilterAttribute = WebAuthentication.Filters.AuthorizationFilterAttribute;
 
 namespace WebAuthentication
@@ -23,6 +22,8 @@ namespace WebAuthentication
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
             builder.RegisterType<PasswordHasher>().As<IPasswordHasher>().SingleInstance();
+            builder.RegisterType<UserRepository>().As<IUserRepository>().SingleInstance();
+            builder.RegisterType<UserSessionRepository>().As<IUserSessionRepository>().SingleInstance();
 
             var container = builder.Build();
             config.DependencyResolver = new AutofacWebApiDependencyResolver(container);

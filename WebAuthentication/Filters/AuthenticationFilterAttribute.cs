@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Filters;
-using System.Web.Http.Results;
 using WebAuthentication.Core;
 
 namespace WebAuthentication.Filters
@@ -35,16 +36,15 @@ namespace WebAuthentication.Filters
                 return;
             }
 
-            var isAuthenticated = await AuthenticateAsync(authorization.Parameter);
+            var principal = await AuthenticateAsync(authorization.Parameter);
 
-            if (isAuthenticated)
+            if (principal == null)
             {
-                context.Principal = new Principal("miller");
+                context.ErrorResult = new AuthenticationFailureResult("Invalid username or password", context.Request);
+                return;
             }
-            else
-            {
-                //context.ErrorResult = new UnauthorizedResult();
-            }
+
+            context.Principal = principal;
         }
 
         public Task ChallengeAsync(HttpAuthenticationChallengeContext context, CancellationToken cancellationToken)
@@ -52,17 +52,46 @@ namespace WebAuthentication.Filters
             return Task.FromResult(0);
         }
 
-        private bool IsAnonymousRequest(HttpAuthenticationContext context)
+        private static bool IsAnonymousRequest(HttpAuthenticationContext context)
         {
             var anonymousAttributes = context.ActionContext.ActionDescriptor.GetCustomAttributes<AllowAnonymousAttribute>();
             return anonymousAttributes.Any();
         }
 
-        private static Task<bool> AuthenticateAsync(string parameter)
+        private static Task<IPrincipal> AuthenticateAsync(string parameter)
         {
             var isValid = parameter == "abc";
 
-            return Task.FromResult(isValid);
+            if (!isValid)
+            {
+                return null;
+            }
+
+            IPrincipal principal = new Principal("miller");
+            return Task.FromResult(principal);
+        }
+    }
+
+    public class AuthenticationFailureResult : IHttpActionResult
+    {
+        private readonly string _reason;
+        private readonly HttpRequestMessage _request;
+
+        public AuthenticationFailureResult(string reason, HttpRequestMessage request)
+        {
+            _reason = reason;
+            _request = request;
+        }
+
+        public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+            {
+                RequestMessage = _request,
+                ReasonPhrase = _reason
+            };
+
+            return Task.FromResult(response);
         }
     }
 }

@@ -113,14 +113,17 @@
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Core\Principal.cs" />
     <Compile Include="DataAccess\User.cs" />
+    <Compile Include="DataAccess\UserSession.cs" />
     <Compile Include="Filters\AuthenticationFilterAttribute.cs" />
     <Compile Include="Filters\AuthorizationFilterAttribute.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\RegisterModel.cs" />
+    <Compile Include="Modules\UserRepository.cs" />
+    <Compile Include="Modules\UserSessionRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\PasswordHasher.cs" />
+    <Compile Include="Modules\PasswordHasher.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
