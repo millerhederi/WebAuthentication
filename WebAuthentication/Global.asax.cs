@@ -6,6 +6,7 @@ using Autofac;
 using Autofac.Integration.WebApi;
 using WebAuthentication.Filters;
 using WebAuthentication.Services;
+using AuthorizationFilterAttribute = WebAuthentication.Filters.AuthorizationFilterAttribute;
 
 namespace WebAuthentication
 {
@@ -32,6 +33,7 @@ namespace WebAuthentication
         private static void ConfigureGlobalFilters(HttpFilterCollection filters)
         {
             filters.Add(new AuthenticationFilterAttribute());
+            filters.Add(new AuthorizationFilterAttribute());
         }
     }
 }
