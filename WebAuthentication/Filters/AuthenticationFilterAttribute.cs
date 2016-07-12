@@ -7,7 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Filters;
+using Autofac;
+using Autofac.Integration.WebApi;
 using WebAuthentication.Core;
+using WebAuthentication.Modules;
 
 namespace WebAuthentication.Filters
 {
@@ -36,11 +39,11 @@ namespace WebAuthentication.Filters
                 return;
             }
 
-            var principal = await AuthenticateAsync(authorization.Parameter);
+            var principal = await AuthenticateAsync(context, authorization.Parameter, cancellationToken);
 
             if (principal == null)
             {
-                context.ErrorResult = new AuthenticationFailureResult("Invalid username or password", context.Request);
+                context.ErrorResult = new AuthenticationFailureResult("Invalid or expired token", context.Request);
                 return;
             }
 
@@ -58,17 +61,27 @@ namespace WebAuthentication.Filters
             return anonymousAttributes.Any();
         }
 
-        private static Task<IPrincipal> AuthenticateAsync(string parameter)
+        private static async Task<IPrincipal> AuthenticateAsync(HttpAuthenticationContext context, string token, CancellationToken cancellationToken)
         {
-            var isValid = parameter == "abc";
+            // DI hackery. Autofac has their own IAutofacAuthenticationFilter that can be implemented; however, it does not support
+            // async methods. Getting around this by implementing the standard IAuthenticationFilter and manually grabbing the container
+            // to do service location - https://github.com/autofac/Autofac.WebApi/issues/5
+            var config = context.ActionContext.ControllerContext.Configuration;
+            var scope = config.DependencyResolver.GetRootLifetimeScope();
+            var userSessionRepository = scope.Resolve<IUserSessionRepository>();
 
-            if (!isValid)
+            var userSession = await userSessionRepository.GetByTokenAsync(token, cancellationToken);
+
+            if (userSession == null)
             {
                 return null;
             }
 
-            IPrincipal principal = new Principal("miller");
-            return Task.FromResult(principal);
+            var userRepository = scope.Resolve<IUserRepository>();
+
+            var user = await userRepository.GetAsync(userSession.UserId, cancellationToken);
+
+            return new Principal(user.UserName);
         }
     }
 

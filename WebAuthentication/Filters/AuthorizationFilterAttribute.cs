@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Controllers;
+using WebAuthentication.Core;
 
 namespace WebAuthentication.Filters
 {
@@ -11,7 +11,7 @@ namespace WebAuthentication.Filters
     {
         protected override bool IsAuthorized(HttpActionContext actionContext)
         {
-            var principal = actionContext.Request.GetRequestContext().Principal;
+            var principal = actionContext.Request.GetRequestContext().Principal as Principal;
 
             if (principal == null)
             {
@@ -21,6 +21,4 @@ namespace WebAuthentication.Filters
             return true;
         }
     }
-
-    
-}
+} 

@@ -7,7 +7,7 @@ namespace WebAuthentication.Controllers
     {
         public IHttpActionResult Get()
         {
-            return Ok(new { Value = 10 });
+            return Ok(new { Value = RequestContext.Principal.Identity.Name });
         }
 
         [AllowAnonymous]

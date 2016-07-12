@@ -48,7 +48,7 @@ namespace WebAuthentication.Controllers
 
             try
             {
-                await userRepository.Insert(user, cancellationToken);
+                await userRepository.InsertAsync(user, cancellationToken);
             }
             catch (InvalidOperationException)
             {
